@@ -76,7 +76,8 @@ Automation
             - condition: trigger
               id: time_9h
           sequence:
-            - service: switch.ten
+            - service: switch.turn_off
               target:
-                entity_id: switch.chuangmi_plug_m1_3
+                entity_id: switch.ten
+
 
