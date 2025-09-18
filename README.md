@@ -39,4 +39,45 @@ Sau đó, thêm card vào Dashboard bằng **YAML Card**:
 
 ```yaml
 type: custom:lunar-calendar
+
 # Không cần entity vì card tự tính toán
+
+```yaml
+Automation
+
+  alias: Bat den vao ngay 15 va 30 am lich
+  description: Tu dong bat den luc mat troi moc va tat den luc 9h ngay 15/30 am lich
+  mode: single
+  trigger:
+    - platform: sun
+      event: sunrise
+    - platform: time
+      at: "09:00:00"
+
+  condition: []
+  action:
+    - choose:
+      # Khi mat troi moc
+        - conditions:
+            - condition: trigger
+              id: sunrise
+            - condition: or
+              conditions:
+                - condition: state
+                  entity_id: sensor.ngay_am_lich
+                  state: "15"
+                - condition: state
+                  entity_id: sensor.ngay_am_lich
+                  state: "30"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.ten
+      # Khi den 9h
+        - conditions:
+            - condition: trigger
+              id: time_9h
+          sequence:
+            - service: switch.ten
+              target:
+                entity_id: switch.chuangmi_plug_m1_3
