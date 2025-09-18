@@ -6,7 +6,5 @@
   "issue_tracker": "https://github.com/mrb2629/lunar_calendar_ha/issues",
   "version": "1.0.1",
   "requirements": ["lunardate>=0.2.0"],
-  "documentation": "https://github.com/mrb2629/lunar_calendar_ha/blob/main/README.md"
+  "documentation": "https://github.com/mrb2629/lunar_calendar_ha/main/README.md"
 }
-
-
