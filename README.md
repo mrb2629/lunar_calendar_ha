@@ -37,14 +37,12 @@ Sensor sẽ được tạo: `sensor.ngay_am_lich` với các thuộc tính là n
 
 Sau đó, thêm card vào Dashboard bằng **YAML Card**:
 
-```yaml
 type: custom:lunar-calendar
 
 # Không cần entity vì card tự tính toán
 
-```yaml
 Automation
-
+```yaml
   alias: Bat den vao ngay 15 va 30 am lich
   description: Tu dong bat den luc mat troi moc va tat den luc 9h ngay 15/30 am lich
   mode: single
@@ -81,3 +79,4 @@ Automation
             - service: switch.ten
               target:
                 entity_id: switch.chuangmi_plug_m1_3
+
