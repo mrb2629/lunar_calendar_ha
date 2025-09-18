@@ -1,20 +1,18 @@
 """The Lunar Calendar integration."""
 DOMAIN = "lunar_calendar"
+PLATFORMS = ["sensor"] # Khai báo các nền tảng sẽ setup
 
 async def async_setup(hass, config):
     """Set up the Lunar Calendar component."""
-    # Không cần xử lý cấu hình trong configuration.yaml nữa
-    return True
+    return True # Không làm gì nếu không có config trong configuration.yaml
 
 async def async_setup_entry(hass, entry):
     """Set up Lunar Calendar from a config entry."""
-    # Chuyển tiếp việc setup sang nền tảng Sensor
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
-    )
+    # Gọi hàm setup_platform bất đồng bộ cho tất cả các nền tảng
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-# Bổ sung hàm để xử lý việc gỡ bỏ (optional, but good practice)
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
-    return await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    # Gọi hàm unload_platform bất đồng bộ
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
