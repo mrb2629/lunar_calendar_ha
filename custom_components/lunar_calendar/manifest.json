@@ -1,0 +1,10 @@
+{
+  "domain": "lunar_calendar",
+  "name": "Lịch Âm Lịch Việt",
+  "codeowners": ["@mrb2629"],
+  "config_flow": false,
+  "issue_tracker": "https://github.com/mrb2629/lunar_calendar_ha/issues",
+  "version": "1.0.0",
+  "requirements": [],
+  "documentation": "https://github.com/mrb2629/lunar_calendar_ha/blob/main/README.md"
+}
