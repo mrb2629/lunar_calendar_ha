@@ -1,88 +1,89 @@
 """Platform for sensor."""
-from datetime import date, timedelta
-import logging
-
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import StateType
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as ha_dt
+import datetime
 
-_LOGGER = logging.getLogger(__name__)
-
-# Constants for Can Chi lookup (simplified for demonstration)
+# --- KHAI BÁO DỮ LIỆU CAN CHI (Giữ nguyên) ---
 CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
 CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
+# Giả định năm 2024 (Dương lịch) là năm Âm lịch Giáp Thìn (năm thứ 4721)
+# 4721 % 10 = 1 (Giáp); 4721 % 12 = 5 (Thìn).
+LUNAR_YEAR_START = 4721 
+# -----------------------------------------------
 
-# Function to get the Chinese year number (e.g., 4722 for year of Dragon)
-# This is a simplification and relies on a known reference point.
-def get_lunar_year_number(year):
-    """Simple estimation for the year number in Chinese calendar system."""
-    # Assuming the current year is 2024 (Giáp Thìn) which is approx. year 4721/4722
-    # This part would require a robust library for accurate conversion.
-    # For now, we return the Gregorian year as a placeholder or a fixed value for demonstration.
-    return year + 2697 # Simplified starting point from Huangdi calendar (4721 for 2024)
-
-def setup_platform(
-    hass: HomeAssistant,
-    config: dict,
-    add_entities: AddEntitiesCallback,
-    discovery_info=None,
+# Hàm setup chính cho Config Entry
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the sensor platform."""
-    add_entities([LunarDateSensor()])
+    """Set up sensor platform."""
+    # Khởi tạo và thêm thực thể Sensor
+    async_add_entities([LunarDateSensor()])
+
 
 class LunarDateSensor(SensorEntity):
     """Representation of a Lunar Date Sensor."""
 
+    # Thuộc tính bắt buộc cho HA mới
     _attr_name = "Ngày Âm Lịch"
     _attr_icon = "mdi:calendar-star"
+    _attr_unique_id = "lunar_calendar_date_sensor"
+    
+    # Thiết lập loại lớp thiết bị, tuy không bắt buộc nhưng nên có
+    # _attr_device_class = SensorDeviceClass.DATE 
+    
+    # Thiết lập trạng thái ban đầu
+    _state: StateType = None
+    _attributes: dict = {}
 
     def __init__(self):
         """Initialize the sensor."""
-        self._state = None
-        self._attributes = {}
-        self._attr_unique_id = "lunar_calendar_date_sensor"
+        self.update() # Gọi update ngay khi khởi tạo
 
     @property
     def state(self) -> StateType:
         """Return the state of the sensor (Gregorian Date)."""
-        return ha_dt.now().strftime("%Y-%m-%d")
+        # Trạng thái chính của Sensor: Ngày Dương lịch theo format ISO 8601
+        return self._state
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict:
         """Return the state attributes."""
+        return self._attributes
+
+    def update(self) -> None:
+        """Fetch new state data for the sensor."""
         today = ha_dt.now().date()
         
-        # This conversion is complex in Python without a proper library.
-        # We will provide a placeholder and a note on how to get the data.
-        
-        # --- MÔ PHỎNG DỮ LIỆU ÂM LỊCH (Cần thư viện bên ngoài để chính xác) ---
-        # Giả sử ta đã có một hàm tính toán chính xác
-        # Example: Convert today to Lunar using a hypothetical library:
-        # lunar_info = lunar_converter.to_lunar(today) 
+        # *** LỖI TIỀM ẨN: CẦN DÙNG THƯ VIỆN CHUYÊN DỤNG CHO CHUYỂN ĐỔI ÂM LỊCH ***
+        # Dùng thư viện Lunar-Gregorian đã được cài đặt hoặc tự triển khai logic phức tạp.
+        # Nếu chỉ dùng logic Can Chi đơn giản:
         
         gregorian_year = today.year
         
-        # Simplified Can Chi calculation based on Gregorian year (Needs correction for Lunar New Year boundary)
-        lunar_year_num = get_lunar_year_number(gregorian_year)
+        # Tính Can Chi dựa trên năm Dương lịch (KHÔNG HOÀN TOÀN CHÍNH XÁC VÌ KHÔNG XÉT NGÀY TẾT)
+        lunar_year_num = LUNAR_YEAR_START + (gregorian_year - 2024)
         can_chi_year = f"{CAN[(lunar_year_num - 1) % 10]} {CHI[(lunar_year_num - 1) % 12]}"
         
-        # Placeholder for Lunar Date/Month
-        lunar_day = "XX" # Placeholder
-        lunar_month = "XX" # Placeholder
+        # CHỖ NÀY CẦN CHUYỂN ĐỔI NGÀY/THÁNG ÂM LỊCH CHÍNH XÁC (Dùng thư viện hoặc logic JS cũ)
+        # Ta sẽ giả lập ngày Âm lịch:
         
-        self._attributes['lunar_day'] = lunar_day
-        self._attributes['lunar_month'] = lunar_month
-        self._attributes['lunar_year_can_chi'] = can_chi_year
-        self._attributes['date_format_vi'] = today.strftime("%d/%m/%Y")
-        self._attributes['note'] = "Sử dụng Custom Card để hiển thị lịch tuần."
+        # *** MÔ PHỎNG DỮ LIỆU (Giống code JS gốc, nhưng chuyển sang logic Python) ***
+        # Để sử dụng lại logic JS gốc, bạn cần cài đặt thư viện V8 hoặc node-runner trong Python, điều này không khả thi.
+        # KHẮC PHỤC: Sử dụng thư viện Python như "pylunar" hoặc "lunardate" (cần thêm vào manifest.json requirements)
         
-        return self._attributes
-
-    def update(self):
-        """Update the state (runs every minute by default)."""
-        # The state/attributes are dynamically generated via properties, 
-        # but we call a dummy update to adhere to the component pattern.
-        pass
+        # MÔ PHỎNG SƠ BỘ:
+        lunar_day = "Tạm: XX"
+        lunar_month = "Tạm: YY" 
+        
+        self._state = today.strftime("%Y-%m-%d")
+        self._attributes = {
+            'lunar_day': lunar_day,
+            'lunar_month': lunar_month,
+            'lunar_year_can_chi': can_chi_year,
+            'date_format_vi': today.strftime("%d/%m/%Y"),
+            'Ghi chú': 'Thông tin ngày và tháng Âm lịch cần thư viện Python chuyên dụng để chính xác.',
+        }
