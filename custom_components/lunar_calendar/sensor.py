@@ -72,6 +72,8 @@ class LunarDateSensor(SensorEntity):
         lunar_day = "N/A"
         lunar_month = "N/A"
         can_chi_year = "N/A"
+        can_chi_month = "N/A"
+        can_chi_day = "N/A"
         note = "Loi khong xac dinh."
         
         try:
@@ -84,28 +86,26 @@ class LunarDateSensor(SensorEntity):
             lunar_year_num = lunar_today.year 
 
             # 4. Tinh Can Chi nam
-            can_index = (lunar_year_num + 6) % 10
-            chi_index = (lunar_year_num + 8) % 12
-            can_chi_year = f"{CAN[can_index]} {CHI[chi_index]} {lunar_year_num}"
-            
+            can_index_year = (lunar_year_num + 6) % 10
+            chi_index_year = (lunar_year_num + 8) % 12
+            can_chi_year = f"{CAN[can_index_year]} {CHI[chi_index_year]} {lunar_year_num}"
+
             note = 'Tinh toan bang lunardate (Backend).'
-            
+
             # 5. Tinh Can Chi thang
             chi_index_month = (lunar_month + 1) % 12
-            can_index_month = (can_index_year * 2 + lunar_month - 1) % 10
+            can_index_month = (can_index_year * 2 + int(lunar_month) - 1) % 10
             can_chi_month = f"{CAN[can_index_month]} {CHI[chi_index_month]} (thang {lunar_month})"
 
             # 6. Tinh Can Chi ngay
-            # Su dung JDN
             def jd_from_date(date):
-                a = (14 - date.month)//12
+                a = (14 - date.month) // 12
                 y = date.year + 4800 - a
-                m = date.month + 12*a - 3
-                jd = date.day + (153*m + 2)//5 + 365*y + y//4 - y//100 + y//400 - 32045
-            return jd
+                m = date.month + 12 * a - 3
+                jd = date.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100 + y // 400 - 32045
+                return jd
 
             jd = jd_from_date(today)
-            # offset 9 la dung cho he thong Viet Nam
             can_index_day = (jd + 9) % 10
             chi_index_day = (jd + 1) % 12
             can_chi_day = f"{CAN[can_index_day]} {CHI[chi_index_day]} (ngay {today.strftime('%d/%m')})"
@@ -134,6 +134,9 @@ class LunarDateSensor(SensorEntity):
             'lunar_year_can_chi': can_chi_year,
             'lunar_month_can_chi': can_chi_month,
             'lunar_day_can_chi': can_chi_day,
+            'date_format_vi': today.strftime("%d/%m/%Y"),
+            'is_full_moon': lunar_day == '15',
+            'is_new_moon': lunar_day == '1',
             'Ghi chu': note,
         }
 
