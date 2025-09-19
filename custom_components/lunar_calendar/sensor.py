@@ -84,7 +84,10 @@ class LunarDateSensor(SensorEntity):
             lunar_year_num = lunar_today.year 
 
             # 4. Tinh Can Chi
-            can_chi_year = f"{CAN[(lunar_year_num - 1) % 10]} {CHI[(lunar_year_num - 1) % 12]}"
+            # 4. Tinh Can Chi nam
+            can_index = (lunar_year_num + 6) % 10
+            chi_index = (lunar_year_num + 8) % 12
+            can_chi_year = f"{CAN[can_index]} {CHI[chi_index]} {lunar_year_num}"
             
             note = 'Tinh toan bang lunardate (Backend).'
 
@@ -122,3 +125,4 @@ class LunarDateErrorSensor(SensorEntity):
     _attr_unique_id = "lunar_calendar_error_sensor"
     _attr_state = "Loi Cai Dat"
     _attr_extra_state_attributes = {'Ghi chu': 'Khong the import thu vien lunardate. Vui long kiem tra log va HACS.'}
+
