@@ -114,12 +114,16 @@ class LunarDateSensor(SensorEntity):
             lunar_day = "Error"
             lunar_month = "Error"
             can_chi_year = "Error"
+            can_chi_month = "Error"
+            can_chi_day = "Error"
             note = f"Loi AttributeError: {e}"
         
         except Exception as e:
             lunar_day = "Error"
             lunar_month = "Error"
             can_chi_year = "Error"
+            can_chi_month = "Error"
+            can_chi_day = "Error"
             note = f"Loi runtime tong quat: {type(e).__name__}"
 
         # 7. Cap nhat Trang thai va Thuoc tinh
@@ -130,9 +134,6 @@ class LunarDateSensor(SensorEntity):
             'lunar_year_can_chi': can_chi_year,
             'lunar_month_can_chi': can_chi_month,
             'lunar_day_can_chi': can_chi_day,
-#            'date_format_vi': today.strftime("%d/%m/%Y"),
-#            'is_full_moon': lunar_day == '15',
-#            'is_new_moon': lunar_day == '1',
             'Ghi chu': note,
         }
 
@@ -146,5 +147,3 @@ class LunarDateErrorSensor(SensorEntity):
     _attr_unique_id = "lunar_calendar_error_sensor"
     _attr_state = "Loi Cai Dat"
     _attr_extra_state_attributes = {'Ghi chu': 'Khong the import thu vien lunardate. Vui long kiem tra log va HACS.'}
-
-
