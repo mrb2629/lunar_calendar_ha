@@ -83,13 +83,32 @@ class LunarDateSensor(SensorEntity):
             lunar_month = str(lunar_today.month)
             lunar_year_num = lunar_today.year 
 
-            # 4. Tinh Can Chi
             # 4. Tinh Can Chi nam
             can_index = (lunar_year_num + 6) % 10
             chi_index = (lunar_year_num + 8) % 12
             can_chi_year = f"{CAN[can_index]} {CHI[chi_index]} {lunar_year_num}"
             
             note = 'Tinh toan bang lunardate (Backend).'
+            
+            # 5. Tinh Can Chi thang
+            chi_index_month = (lunar_month + 1) % 12
+            can_index_month = (can_index_year * 2 + lunar_month - 1) % 10
+            can_chi_month = f"{CAN[can_index_month]} {CHI[chi_index_month]} (thang {lunar_month})"
+
+            # 6. Tinh Can Chi ngay
+            # Su dung JDN
+            def jd_from_date(date):
+                a = (14 - date.month)//12
+                y = date.year + 4800 - a
+                m = date.month + 12*a - 3
+                jd = date.day + (153*m + 2)//5 + 365*y + y//4 - y//100 + y//400 - 32045
+            return jd
+
+            jd = jd_from_date(today)
+            # offset 9 la dung cho he thong Viet Nam
+            can_index_day = (jd + 9) % 10
+            chi_index_day = (jd + 1) % 12
+            can_chi_day = f"{CAN[can_index_day]} {CHI[chi_index_day]} (ngay {today.strftime('%d/%m')})"
 
         except AttributeError as e:
             lunar_day = "Error"
@@ -103,15 +122,17 @@ class LunarDateSensor(SensorEntity):
             can_chi_year = "Error"
             note = f"Loi runtime tong quat: {type(e).__name__}"
 
-        # 5. Cap nhat Trang thai va Thuoc tinh
+        # 7. Cap nhat Trang thai va Thuoc tinh
         self._state = lunar_day # Trang thai chinh la Ngay Am (1-30)
         self._attributes = {
             'lunar_day_num': lunar_day,
             'lunar_month_num': lunar_month,
             'lunar_year_can_chi': can_chi_year,
-            'date_format_vi': today.strftime("%d/%m/%Y"),
-            'is_full_moon': lunar_day == '15',
-            'is_new_moon': lunar_day == '1',
+            'lunar_month_can_chi': can_chi_month,
+            'lunar_day_can_chi': can_chi_day,
+#            'date_format_vi': today.strftime("%d/%m/%Y"),
+#            'is_full_moon': lunar_day == '15',
+#            'is_new_moon': lunar_day == '1',
             'Ghi chu': note,
         }
 
@@ -125,4 +146,5 @@ class LunarDateErrorSensor(SensorEntity):
     _attr_unique_id = "lunar_calendar_error_sensor"
     _attr_state = "Loi Cai Dat"
     _attr_extra_state_attributes = {'Ghi chu': 'Khong the import thu vien lunardate. Vui long kiem tra log va HACS.'}
+
 
