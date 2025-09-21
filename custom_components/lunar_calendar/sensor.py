@@ -9,7 +9,7 @@ import datetime
 
 # Import thu vien bat buoc
 try:
-    from lunardate import LunarDate
+    from .lunardate import LunarDate
     LUNAR_DATE_AVAILABLE = True
 except ImportError:
     LUNAR_DATE_AVAILABLE = False
