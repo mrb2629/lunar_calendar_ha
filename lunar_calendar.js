@@ -1,4 +1,3 @@
-
 function getMonday(d) {
   d = new Date(d);
   var day = d.getDay(),
@@ -21,7 +20,24 @@ class LunarCalendar extends HTMLElement {
       card.appendChild(this.content);
       this.appendChild(card);
     }
+    // --- Lấy sensor.ngay_am_lich và các thuộc tính ---
+      const entityId = this.config ? this.config.entity : 'sensor.ngay_am_lich'; // Sử dụng entity mặc định nếu config trống
+      const state = hass.states[entityId];
+    
+    // Khai báo và lấy giá trị các thuộc tính
+      let lunarHourSensor = ''; 
+      let lunarDaySensor = '';
+      let lunarMonthSensor = '';
+      let lunarYearSensor = '';
+      let lunarDateInfo = '';
 
+    if (state && state.attributes) {
+        lunarHourSensor = state.attributes['Gio Am lich'] || 'N/A';
+        lunarDaySensor = state.attributes['Ngay Am lich'] || 'N/A';
+        lunarMonthSensor = state.attributes['Thang Am lich'] || 'N/A';
+        lunarYearSensor = state.attributes['Nam Am lich'] || 'N/A';
+    }
+    // --------------------------------------------------------
     //const entityId = this.config.entity;
     //const state = hass.states[entityId];
     //const stateStr = state ? state.state : 'unavailable';
@@ -46,7 +62,8 @@ class LunarCalendar extends HTMLElement {
     var currdate = (new Date()).toLocaleDateString('en-GB'),
     m = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { month: "numeric" }).format(date),
     d = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { day: "numeric" }).format(date).match(/\d+/)[0];
-
+    // Thay thế logic tính Can Chi năm bằng sensor (phần bị khoanh đỏ)
+    lunarDateInfo = `Giờ ${lunarHourSensor}-Ngày ${lunarDaySensor}-Tháng ${lunarMonthSensor}-Năm ${lunarYearSensor}`;
 
     if (String(m).match(/\d+/)) {
       var y = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", {
@@ -114,7 +131,7 @@ class LunarCalendar extends HTMLElement {
         </div>
         <div class="date">
           <div class="date1">${currdate}</div>
-          <div class="date2">${d}.${m} ${y}</div>
+          <div class="date2">${lunarDateInfo}</div>
         </div>
         <div class="week">
           <div class="we">
@@ -162,6 +179,7 @@ class LunarCalendar extends HTMLElement {
         .ldate{
           margin: auto;
           position: relative;
+          padding-bottom: 15px; /* ⬅️ THAY ĐỔI: Tăng chiều cao card thêm 10px */
         }
         .ldate .day{
           font-size:3em;
@@ -178,9 +196,12 @@ class LunarCalendar extends HTMLElement {
           font-size: 1.5em;
         }
         .ldate .date .date2{
-          color:#A2A2A2;
+          /* ⬅️ THAY ĐỔI: Loại bỏ margin-top 5px gây lệch, sử dụng margin-bottom trên .date1 hoặc line-height nếu cần khoảng cách */
+		  margin-top: 15px;
+          color:#F05A5A;
         }
         .ldate .week{
+          margin-top: 15px; /* ⬅️ THAY ĐỔI: Tịnh tiến dòng dưới (lịch tuần) xuống 10px */
           box-shadow: 0 0 20px 11px #00000008;
         }
         .ldate .week:after{
@@ -228,7 +249,7 @@ class LunarCalendar extends HTMLElement {
     //if (!config.entity) {
     //throw new Error('You need to define an entity');
     //}
-    //this.config = config;
+    this.config = config;
   }
 
   // The height of your card. Home Assistant uses this to automatically
