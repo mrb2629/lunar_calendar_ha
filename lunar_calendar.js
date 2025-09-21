@@ -63,7 +63,7 @@ class LunarCalendar extends HTMLElement {
     m = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { month: "numeric" }).format(date),
     d = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { day: "numeric" }).format(date).match(/\d+/)[0];
     // Thay thế logic tính Can Chi năm bằng sensor (phần bị khoanh đỏ)
-    lunarDateInfo = `Giờ ${lunarHourSensor}-Ngày ${lunarDaySensor}-Tháng ${lunarMonthSensor}-Năm ${lunarYearSensor}`;
+    lunarDateInfo = `Giờ ${lunarHourSensor} | Ngày ${lunarDaySensor} | Tháng ${lunarMonthSensor} | Năm ${lunarYearSensor}`;
 
     if (String(m).match(/\d+/)) {
       var y = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", {
@@ -260,3 +260,4 @@ class LunarCalendar extends HTMLElement {
 }
 
 customElements.define('lunar-calendar', LunarCalendar);
+
