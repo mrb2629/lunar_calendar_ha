@@ -43,22 +43,27 @@ type: custom:lunar-calendar
 
 Automation
 ```yaml
-  alias: Bat den vao ngay 15 va 30 am lich
-  description: Tu dong bat den luc mat troi moc va tat den luc 9h ngay 15/30 am lich
+- id: "0205"
+  alias: 0205 Bat den vao ngay 15 va 1 am lich
+  description: Tu dong bat den luc mat troi moc va tat den luc 10h ngay 15/1 am lich
   mode: single
   trigger:
+    # Trigger luc mat troi moc
     - platform: sun
       event: sunrise
+      id: "sunrise"
+
+    # Trigger luc 10:00
     - platform: time
-      at: "09:00:00"
+      at: "10:00:00"
+      id: "time_10h"
 
   condition: []
   action:
     - choose:
-      # Khi mat troi moc
         - conditions:
             - condition: trigger
-              id: sunrise
+              id: "sunrise"
             - condition: or
               conditions:
                 - condition: state
@@ -66,18 +71,18 @@ Automation
                   state: "15"
                 - condition: state
                   entity_id: sensor.ngay_am_lich
-                  state: "30"
+                  state: "1"
           sequence:
             - service: switch.turn_on
               target:
-                entity_id: switch.ten
-      # Khi den 9h
+                entity_id: switch.chuangmi_plug_m1_3
+
         - conditions:
             - condition: trigger
-              id: time_9h
+              id: "time_10h"
           sequence:
             - service: switch.turn_off
               target:
-                entity_id: switch.ten
+                entity_id: switch.chuangmi_plug_m1_3
 
 
