@@ -5,25 +5,25 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as ha_dt
-from datetime import timedelta
+from datetime import timedelta, datetime
 from .amlich_hnd import core
 
 CAN = ["Giáp","Ất","Bính","Đinh","Mậu","Kỷ","Canh","Tân","Nhâm","Quý"]
 CHI = ["Tý","Sửu","Dần","Mão","Thìn","Tỵ","Ngọ","Mùi","Thân","Dậu","Tuất","Hợi"]
 
 HOANG_DAO_HOURS = {
-    0: ["Tý","Sửu","Mão","Ngọ","Thân","Dậu"],    # Ngày Tý
-    1: ["Dần","Mão","Tỵ","Thân","Tuất","Hợi"],  # Ngày Sửu
-    2: ["Tý","Sửu","Thìn","Tỵ","Mùi","Tuất"],   # Ngày Dần
-    3: ["Dần","Mão","Ngọ","Thân","Dậu","Hợi"],  # Ngày Mão
-    4: ["Dần","Thìn","Tỵ","Thân","Dậu","Hợi"],  # Ngày Thìn
-    5: ["Sửu","Dần","Mão","Tỵ","Thân","Tuất"],  # Ngày Tỵ
-    6: ["Tý","Sửu","Mão","Ngọ","Thân","Dậu"],   # Ngày Ngọ
-    7: ["Dần","Mão","Tỵ","Thân","Tuất","Hợi"],  # Ngày Mùi
-    8: ["Tý","Sửu","Thìn","Tỵ","Mùi","Tuất"],   # Ngày Thân
-    9: ["Dần","Mão","Ngọ","Thân","Dậu","Hợi"],  # Ngày Dậu
-    10:["Dần","Thìn","Tỵ","Thân","Dậu","Hợi"],  # Ngày Tuất
-    11:["Sửu","Dần","Mão","Tỵ","Thân","Tuất"],  # Ngày Hợi
+    0: ["Tý","Sửu","Mão","Ngọ","Thân","Dậu"],    
+    1: ["Dần","Mão","Tỵ","Thân","Tuất","Hợi"],  
+    2: ["Tý","Sửu","Thìn","Tỵ","Mùi","Tuất"],    
+    3: ["Dần","Mão","Ngọ","Thân","Dậu","Hợi"],  
+    4: ["Dần","Thìn","Tỵ","Thân","Dậu","Hợi"],  
+    5: ["Sửu","Dần","Mão","Tỵ","Thân","Tuất"],  
+    6: ["Tý","Sửu","Mão","Ngọ","Thân","Dậu"],    
+    7: ["Dần","Mão","Tỵ","Thân","Tuất","Hợi"],  
+    8: ["Tý","Sửu","Thìn","Tỵ","Mùi","Tuất"],    
+    9: ["Dần","Mão","Ngọ","Thân","Dậu","Hợi"],  
+    10:["Dần","Thìn","Tỵ","Thân","Dậu","Hợi"],  
+    11:["Sửu","Dần","Mão","Tỵ","Thân","Tuất"],  
 }
 
 HOANG_DAO_DAYS = {
@@ -41,81 +41,110 @@ HOANG_DAO_DAYS = {
     12:["Tuất","Hợi","Dần","Mão","Tỵ","Thân"],
 }
 
-def get_ngay_hoang_dao_trong_thang(lunar_month,lunar_year,lunar_leap,tz=7):
-    start_solar = core.lunar_to_solar(1,lunar_month,lunar_year,lunar_leap,tz)
-    if start_solar==(0,0,0): return []
+def get_ngay_hoang_dao_trong_thang(lunar_month, lunar_year, lunar_leap, tz=7):
+    """Trả về danh sách ngày Hoàng đạo trong tháng (bao gồm cả tháng nhuận)."""
+    # Dùng số tháng để tra bảng, bỏ qua nhuận
+    month_key = lunar_month  
+
+    start_solar = core.lunar_to_solar(1, lunar_month, lunar_year, lunar_leap, tz)
+    if start_solar == (0,0,0): 
+        return []
+
     start_jd = core.jd_from_date(*start_solar)
-    cand30 = core.lunar_to_solar(30,lunar_month,lunar_year,lunar_leap,tz)
-    if cand30!=(0,0,0):
+    cand30 = core.lunar_to_solar(30, lunar_month, lunar_year, lunar_leap, tz)
+    if cand30 != (0,0,0):
         jd30 = core.jd_from_date(*cand30)
-        month_length = 30 if jd30>start_jd else 29
+        month_length = 30 if jd30 > start_jd else 29
     else: 
-        month_length=29
-    hoang=set(HOANG_DAO_DAYS.get(lunar_month,[]))
-    res=[]
-    for ld in range(1,month_length+1):
-        s=core.lunar_to_solar(ld,lunar_month,lunar_year,lunar_leap,tz)
-        if s==(0,0,0): continue
-        jd_day = core.jd_local_from_date(*s,tz)
-        chi=CHI[(jd_day+1)%12]
-        if chi in hoang: 
+        month_length = 29
+
+    hoang = set(HOANG_DAO_DAYS.get(month_key, []))
+    res = []
+    for ld in range(1, month_length+1):
+        s = core.lunar_to_solar(ld, lunar_month, lunar_year, lunar_leap, tz)
+        if s == (0,0,0): 
+            continue
+        jd_day = core.jd_local_from_date(*s, tz)
+        chi = CHI[(jd_day+1) % 12]
+        if chi in hoang:
             res.append(ld)
     return res
 
 async def async_setup_entry(hass:HomeAssistant, entry:ConfigEntry, async_add_entities:AddEntitiesCallback):
-    async_add_entities([LunarDateSensor()],True)
+    async_add_entities([LunarDateSensor(hass)], True)
 
 class LunarDateSensor(SensorEntity):
-    _attr_name="Ngày Âm Lịch"
-    _attr_icon="mdi:calendar-star"
-    _attr_unique_id="lunar_calendar_date_sensor"
+    _attr_name = "Ngày Âm Lịch"
+    _attr_icon = "mdi:calendar-star"
+    _attr_unique_id = "lunar_calendar_date_sensor"
+
+    def __init__(self, hass: HomeAssistant):
+        self.hass = hass
 
     async def async_update(self):
-        now=ha_dt.now()
-        dd,mm,yy=now.day,now.month,now.year
         tz=7
-        lunar_day,lunar_month,lunar_year,lunar_leap=core.solar_to_lunar(dd,mm,yy,tz)
-        jd=core.jd_local_from_date(dd,mm,yy,tz)
 
-        # Thêm "N" nếu là tháng nhuận
+        # Nếu có helper input_datetime.ngay_test thì dùng, không thì lấy ngày hệ thống
+        test_entity = "input_datetime.ngay_test"
+        test_date = self.hass.states.get(test_entity)
+
+        if test_date and test_date.state not in ("unknown", ""):
+            try:
+                dt_obj = datetime.strptime(test_date.state, "%Y-%m-%d")
+                now = dt_obj
+            except Exception:
+                now = ha_dt.now()
+        else:
+            now = ha_dt.now()
+
+        dd, mm, yy = now.day, now.month, now.year
+        lunar_day, lunar_month, lunar_year, lunar_leap = core.solar_to_lunar(dd, mm, yy, tz)
+        jd = core.jd_local_from_date(dd, mm, yy, tz)
+
+        # Thêm "N" nếu tháng nhuận
         lunar_month_display = f"{lunar_month}N" if lunar_leap else str(lunar_month)
 
-        # Năm
-        can_year=CAN[(lunar_year+6)%10]; chi_year=CHI[(lunar_year+8)%12]
-        can_chi_year=f"{can_year} {chi_year}"
-        # Tháng
-        chi_month=CHI[(lunar_month+1)%12]
-        start_can={0:2,5:2,1:4,6:4,2:6,7:6,3:8,8:8,4:0,9:0}[(lunar_year+6)%10]
-        can_month=CAN[(start_can+lunar_month-1)%10]
-        can_chi_month=f"{can_month} {chi_month}"
-        # Ngày
-        can_day=CAN[(jd+9)%10]; chi_day=CHI[(jd+1)%12]
-        can_chi_day=f"{can_day} {chi_day}"
-        # Giờ
-        chi_index_hour=((now.hour+1)//2)%12
-        chi_hour=CHI[chi_index_hour]
-        can_hour=CAN[((jd+9)%10*2+chi_index_hour)%10]
-        can_chi_hour=f"{can_hour} {chi_hour}"
+        # Tính Can Chi năm
+        can_year = CAN[(lunar_year+6)%10]
+        chi_year = CHI[(lunar_year+8)%12]
+        can_chi_year = f"{can_year} {chi_year}"
 
-        tinh_chat_ngay="Hoàng đạo" if chi_day in HOANG_DAO_DAYS.get(lunar_month,[]) else "Hắc đạo"
-        hoang_hours=HOANG_DAO_HOURS.get((jd+1)%12,[])
-        tinh_chat_gio="Hoàng đạo" if chi_hour in hoang_hours else "Hắc đạo"
-        lunar_days_in_month=get_ngay_hoang_dao_trong_thang(lunar_month,lunar_year,lunar_leap,tz)
+        # Tính Can Chi tháng
+        chi_month = CHI[(lunar_month+1)%12]
+        start_can = {0:2,5:2,1:4,6:4,2:6,7:6,3:8,8:8,4:0,9:0}[(lunar_year+6)%10]
+        can_month = CAN[(start_can+lunar_month-1)%10]
+        can_chi_month = f"{can_month} {chi_month}"
 
-        # --- Thêm phần tính toán ngày âm lịch cho cả tuần ---
+        # Tính Can Chi ngày
+        can_day = CAN[(jd+9)%10]
+        chi_day = CHI[(jd+1)%12]
+        can_chi_day = f"{can_day} {chi_day}"
+
+        # Tính Can Chi giờ
+        chi_index_hour = ((now.hour+1)//2)%12
+        chi_hour = CHI[chi_index_hour]
+        can_hour = CAN[((jd+9)%10*2+chi_index_hour)%10]
+        can_chi_hour = f"{can_hour} {chi_hour}"
+
+        tinh_chat_ngay = "Hoàng đạo" if chi_day in HOANG_DAO_DAYS.get(lunar_month, []) else "Hắc đạo"
+        hoang_hours = HOANG_DAO_HOURS.get((jd+1)%12, [])
+        tinh_chat_gio = "Hoàng đạo" if chi_hour in hoang_hours else "Hắc đạo"
+        lunar_days_in_month = get_ngay_hoang_dao_trong_thang(lunar_month, lunar_year, lunar_leap, tz)
+
+        # Ngày âm lịch tuần này
         lunar_dates_of_week = {}
-        start_of_week = now - timedelta(days=now.weekday()) # Lấy ngày thứ Hai của tuần
+        start_of_week = now - timedelta(days=now.weekday())
         for i in range(7):
             current_day = start_of_week + timedelta(days=i)
             lunar_d, lunar_m, lunar_y, lunar_l = core.solar_to_lunar(current_day.day, current_day.month, current_day.year, tz)
             lunar_m_disp = f"{lunar_m}N" if lunar_l else str(lunar_m)
             lunar_dates_of_week[f"Ngày {i+2}"] = f"{lunar_d}/{lunar_m_disp}"
 
-        # State chính hiển thị đầy đủ ngày/tháng/năm âm lịch
-        self._attr_native_value=f"{lunar_day}/{lunar_month_display}/{lunar_year}"
+        # State chính
+        self._attr_native_value = f"{lunar_day}/{lunar_month_display}/{lunar_year}"
 
-        # Thuộc tính chi tiết
-        self._attr_extra_state_attributes={
+        # Attributes chi tiết
+        self._attr_extra_state_attributes = {
             "Ngày âm lịch": lunar_day,
             "Tháng âm lịch": lunar_month_display,
             "Năm âm lịch": lunar_year,
