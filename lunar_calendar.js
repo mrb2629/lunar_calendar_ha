@@ -1,263 +1,304 @@
 function getMonday(d) {
-  d = new Date(d);
-  var day = d.getDay(),
-    diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
-  return new Date(d.setDate(diff));
+    d = new Date(d);
+    var day = d.getDay(),
+        diff = d.getDate() - day + (day == 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
 }
 
-function getLday(d) {
-  var day = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { day: "numeric" }).format(d).match(/\d+/)[0];
-  return day;
+function getMoonPhaseIcon(lunarDay) {
+    if (lunarDay == 1) return "🌑";
+    if (lunarDay <= 7) return "🌒";
+    if (lunarDay == 8) return "🌓";
+    if (lunarDay <= 14) return "🌔";
+    if (lunarDay <= 16) return "🌕";
+    if (lunarDay <= 22) return "🌖";
+    if (lunarDay <= 29) return "🌘";
+    if (lunarDay >= 30) return "🌑";
+    return "🌙";
+}
+
+function convertHoangDaoHours(hoursString) {
+    const hourMap = {
+        'Tý': '23h-1h',
+        'Sửu': '1h-3h',
+        'Dần': '3h-5h',
+        'Mão': '5h-7h',
+        'Thìn': '7h-9h',
+        'Tỵ': '9h-11h',
+        'Ngọ': '11h-13h',
+        'Mùi': '13h-15h',
+        'Thân': '15h-17h',
+        'Dậu': '17h-19h',
+        'Tuất': '19h-21h',
+        'Hợi': '21h-23h',
+    };
+
+    return hoursString
+        .split(',')
+        .map(hour => {
+            const trimmedHour = hour.trim();
+            return hourMap[trimmedHour] || trimmedHour;
+        })
+        .join(' | ');
 }
 
 class LunarCalendar extends HTMLElement {
-  set hass(hass) {
-    if (!this.content) {
-      const card = document.createElement('ha-card');
-      card.header = '';
-      this.content = document.createElement('div');
-      this.content.style.padding = '0px';
-      card.appendChild(this.content);
-      this.appendChild(card);
-    }
-    // --- Lấy sensor.ngay_am_lich và các thuộc tính ---
-      const entityId = this.config ? this.config.entity : 'sensor.ngay_am_lich'; // Sử dụng entity mặc định nếu config trống
-      const state = hass.states[entityId];
-    
-    // Khai báo và lấy giá trị các thuộc tính
-      let lunarHourSensor = ''; 
-      let lunarDaySensor = '';
-      let lunarMonthSensor = '';
-      let lunarYearSensor = '';
-      let lunarDateInfo = '';
+    set hass(hass) {
+        if (!this.content) {
+            const card = document.createElement("ha-card");
+            card.header = "";
+            this.content = document.createElement("div");
+            card.appendChild(this.content);
+            this.appendChild(card);
+        }
 
-    if (state && state.attributes) {
-        lunarHourSensor = state.attributes['Gio Am lich'] || 'N/A';
-        lunarDaySensor = state.attributes['Ngay Am lich'] || 'N/A';
-        lunarMonthSensor = state.attributes['Thang Am lich'] || 'N/A';
-        lunarYearSensor = state.attributes['Nam Am lich'] || 'N/A';
-    }
-    // --------------------------------------------------------
-    //const entityId = this.config.entity;
-    //const state = hass.states[entityId];
-    //const stateStr = state ? state.state : 'unavailable';
-    const date = new Date();
-    const ddd = getMonday(date);
+        const entityId = this.config ? this.config.entity : "sensor.ngay_am_lich";
+        const state = hass.states[entityId];
 
-    //ddd.getDate();
-    var day = [], lday = [];
-    day[0] = ddd.getDate(); lday[0] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[1] = ddd.getDate(); lday[1] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[2] = ddd.getDate(); lday[2] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[3] = ddd.getDate(); lday[3] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[4] = ddd.getDate(); lday[4] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[5] = ddd.getDate(); lday[5] = getLday(ddd);
-    ddd.setDate(ddd.getDate() + 1); day[6] = ddd.getDate(); lday[6] = getLday(ddd);
+        let lunarHourSensor = "N/A";
+        let lunarDaySensor = "N/A";
+        let lunarMonthSensor = "N/A";
+        let lunarYearSensor = "N/A";
+        let danhSachGioHoangDao = "";
+        let danhSachNgayHoangDao = "";
+        let tinhChatGio = "";
+        let tinhChatNgay = "";
+        let d = 0;
+        let m = 0;
+        let lunarDatesOfWeek = {};
 
-    var act = date.getDay();
-    if (act == 0) act = 7; else act = act;
+        if (state && state.attributes) {
+            lunarHourSensor = state.attributes["Can Chi Giờ"] || "N/A";
+            lunarDaySensor = state.attributes["Can Chi Ngày"] || "N/A";
+            lunarMonthSensor = state.attributes["Can Chi Tháng"] || "N/A";
+            lunarYearSensor = state.attributes["Can Chi Năm"] || "N/A";
+            danhSachGioHoangDao = state.attributes["Danh sách giờ Hoàng đạo"] || "";
+            danhSachNgayHoangDao = state.attributes["Danh sách ngày Hoàng đạo trong tháng (âm lịch)"] || "";
+            tinhChatGio = state.attributes["Tính chất giờ hiện tại"] || "";
+            tinhChatNgay = state.attributes["Tính chất ngày hiện tại"] || "";
+            d = state.attributes["Ngày âm lịch"] || 0;
+            m = state.attributes["Tháng âm lịch"] || 0;
+            lunarDatesOfWeek = state.attributes["Ngày âm lịch tuần này"] || {};
+        }
 
-    var today = Intl.DateTimeFormat("vi-VN", { weekday: "long" }).format(date);
-    var m='';
-    var currdate = (new Date()).toLocaleDateString('en-GB'),
-    m = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { month: "numeric" }).format(date),
-    d = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", { day: "numeric" }).format(date).match(/\d+/)[0];
-    // Thay thế logic tính Can Chi năm bằng sensor (phần bị khoanh đỏ)
-    lunarDateInfo = `Giờ ${lunarHourSensor} | Ngày ${lunarDaySensor} | Tháng ${lunarMonthSensor} | Năm ${lunarYearSensor}`;
+        const gioIcon = tinhChatGio === "Hoàng đạo" ? "⭐ " : "";
+        const ngayIcon = tinhChatNgay === "Hoàng đạo" ? "⭐ " : "";
 
-    if (String(m).match(/\d+/)) {
-      var y = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", {
-        year: "numeric"
-      }).format(date).match(/\d+/)[0],
-        m = +Intl.DateTimeFormat("zh-TW-u-ca-chinese", {
-          month: "numeric"
-        }).format(date).match(/\d+/)[0],
-        can = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"],
-        chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
+        const gioClass = tinhChatGio === "Hoàng đạo" ? "highlight-hoangdao" : "";
+        const ngayClass = tinhChatNgay === "Hoàng đạo" ? "highlight-hoangdao" : "";
 
-      y = can[(y - 1) % 10] + ' ' + chi[(y - 1) % 12];
-    } else {
-      var m = Intl.DateTimeFormat("zh-TW-u-ca-chinese", {month: "numeric"}).format(date).replace(/閏|月|正|二|三|四|五|六|七|八|九|十|冬|臘/gu, function (x) {
-        return {
-            閏: '*', // nhuan
-            月: '',
-            正: '1',
-            二: '2',
-            三: '3',
-            四: '4',
-            五: '5',
-            六: '6',
-            七: '7',
-            八: '8',
-            九: '9',
-            十: '10',
-            冬: '11',
-            臘: '12'
-        }[x];
-    }),
-    y = Intl.DateTimeFormat("zh-TW-u-ca-chinese", {year: "numeric"}).format(date).replace(/\d+/gu, '').replace(/年|甲|乙|丙|丁|戊|己|庚|辛|壬|癸|子|丑|寅|卯|辰|巳|午|未|申|酉|戌|亥/gu, function (x) {
-        return {
-            年: "",
-            甲: "Giáp ",
-            乙: "Ất ",
-            丙: "Bính ",
-            丁: "Đinh ",
-            戊: "Mậu ",
-            己: "Kỷ ",
-            庚: "Canh ",
-            辛: "Tân ",
-            壬: "Nhâm ",
-            癸: "Quý ",
-            子: "Tý",
-            丑: "Sửu",
-            寅: "Dần",
-            卯: "Mão",
-            辰: "Thìn",
-            巳: "Tỵ",
-            午: "Ngọ",
-            未: "Mùi",
-            申: "Thân",
-            酉: "Dậu",
-            戌: "Tuất",
-            亥: "Hợi"
-        }[x];
-    });
-    };
+        let arrNgayHoangDao = danhSachNgayHoangDao
+            .split(",")
+            .map(x => parseInt(x.trim(), 10))
+            .filter(x => !isNaN(x));
 
-    this.content.innerHTML = `
-      <div class="ldate">
-        <div class="day">
-          ${today}
-        </div>
-        <div class="date">
-          <div class="date1">${currdate}</div>
-          <div class="date2">${lunarDateInfo}</div>
-        </div>
-        <div class="week">
-          <div class="we">
-            <div class="we0">TH 2</div>
-            <div class="we1">${day[0]}</div>
-            <div class="we2">${lday[0]}</div>
-          </div>
-          <div class="we">
-            <div class="we0">TH 3</div>
-            <div class="we1">${day[1]}</div>
-            <div class="we2">${lday[1]}</div>
-          </div>
-          <div class="we act">
-            <div class="we0">TH 4</div>
-            <div class="we1">${day[2]}</div>
-            <div class="we2">${lday[2]}</div>
-          </div>
-          <div class="we">
-            <div class="we0">TH 5</div>
-            <div class="we1">${day[3]}</div>
-            <div class="we2">${lday[3]}</div>
-          </div>
-          <div class="we">
-            <div class="we0">TH 6</div>
-            <div class="we1">${day[4]}</div>
-            <div class="we2">${lday[4]}</div>
-          </div>
-          <div class="we">
-            <div class="we0">TH 7</div>
-            <div class="we1">${day[5]}</div>
-            <div class="we2">${lday[5]}</div>
-          </div>
-          <div class="we red">
-            <div class="we0">CN</div>
-            <div class="we1">${day[6]}</div>
-            <div class="we2">${lday[6]}</div>
-          </div>
+        const date = new Date();
+        const ddd = getMonday(date);
 
-        </div>
-      </div>
+        let day = [];
+        for (let i = 0; i < 7; i++) {
+            let tempDate = new Date(ddd);
+            tempDate.setDate(ddd.getDate() + i);
+            day[i] = tempDate.getDate();
+        }
+
+        let lday = [];
+        for (let i = 0; i < 7; i++) {
+            let sensorDayKey;
+            if (i === 6) { // Chủ Nhật
+                sensorDayKey = `Ngày 8`;
+            } else { // Thứ 2 - Thứ 7
+                sensorDayKey = `Ngày ${i + 2}`;
+            }
+
+            const lunar_date_string = lunarDatesOfWeek[sensorDayKey];
+            if (lunar_date_string) {
+                const lunar_day_part = lunar_date_string.split('/')[0];
+                lday.push(parseInt(lunar_day_part));
+            } else {
+                lday.push("?");
+            }
+        }
+
+        let act = date.getDay();
+        if (act == 0) act = 7;
+
+        const today = Intl.DateTimeFormat("vi-VN", { weekday: "long" }).format(date);
+        const currdate = date.toLocaleDateString("en-GB");
+
+        const moonIcon = getMoonPhaseIcon(d);
+        const lunarDateNumericInfo = `${moonIcon} ${d} / ${m}`;
+
+        const lunarCanChiHTML = `
+            <div class="can-chi-header">
+                <div class="can-chi-col ${gioClass}">Giờ</div>
+                <div class="can-chi-col ${ngayClass}">Ngày</div>
+                <div class="can-chi-col">Tháng</div>
+                <div class="can-chi-col">Năm</div>
+            </div>
+            <div class="can-chi-values">
+                <div class="can-chi-col ${gioClass}">${gioIcon}${lunarHourSensor}</div>
+                <div class="can-chi-col ${ngayClass}">${ngayIcon}${lunarDaySensor}</div>
+                <div class="can-chi-col">${lunarMonthSensor}</div>
+                <div class="can-chi-col">${lunarYearSensor}</div>
+            </div>
+        `;
+
+        const gioHoangDaoHTML = danhSachGioHoangDao ? `
+            <div class="gio-hoang-dao">
+                ⏰ Giờ hoàng đạo: ${convertHoangDaoHours(danhSachGioHoangDao)}
+            </div>
+        ` : '';
+
+        // Xóa nội dung cũ trước khi thêm nội dung mới
+        this.content.innerHTML = '';
+        this.content.innerHTML = `
+            <div class="ldate">
+                <div class="ldate-top">
+                    <div class="day">
+                        <div class="today-text">${today}</div>
+                        <div class="currdate-text">☀️ ${currdate}</div>
+                    </div>
+                    <div class="date-block">
+                        <div class="lunar-date-numeric">${lunarDateNumericInfo}</div>
+                        ${lunarCanChiHTML}
+                    </div>
+                </div>
+                ${gioHoangDaoHTML}
+                <div class="week">
+                    ${day
+                        .map(
+                            (d, i) => {
+                                const isNgayHoangDao = arrNgayHoangDao.includes(lday[i]);
+                                const starIcon = isNgayHoangDao ? "⭐ " : "";
+                                return `
+                                    <div class="we ${i === 6 ? "red" : ""} ${i + 1 === act ? "act" : ""}">
+                                        <div class="we0">${["TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7", "CN"][i]}</div>
+                                        <div class="we1">${d}</div>
+                                        <div class="we2">${starIcon}${lday[i]}</div>
+                                    </div>`;
+                            }
+                        )
+                        .join("")}
+                </div>
+            </div>
             <style>
-        body{
-          font-family: arial;
-        }
-        .ldate{
-          margin: auto;
-          position: relative;
-          padding-bottom: 15px; /* ⬅️ THAY ĐỔI: Tăng chiều cao card thêm 10px */
-        }
-        .ldate .day{
-          font-size:3em;
-          line-height: 70px;
-          padding-left:10px;
-        }
-        .ldate .date{
-          position: absolute;
-              right: 10px;
-    top: 12px;
-          text-align: right;
-        }
-        .ldate .date .date1{
-          font-size: 1.5em;
-        }
-        .ldate .date .date2{
-          /* ⬅️ THAY ĐỔI: Loại bỏ margin-top 5px gây lệch, sử dụng margin-bottom trên .date1 hoặc line-height nếu cần khoảng cách */
-		  margin-top: 15px;
-          color:#F05A5A;
-        }
-        .ldate .week{
-          margin-top: 15px; /* ⬅️ THAY ĐỔI: Tịnh tiến dòng dưới (lịch tuần) xuống 10px */
-          box-shadow: 0 0 20px 11px #00000008;
-        }
-        .ldate .week:after{
-          content: ' ';
-          display: block;
-          clear: both;
-        }
-        .ldate .week .we{
-          width:14.28%;
-          float: left;
-          text-align: center;
-        }
-        .ldate .week .we0{
-          font-size: 0.8em;
-          padding: 10px 0 10px;
-          color:#A2A2A2;
-        }
-        .ldate .week .we.red .we0{
-          color:#F05A5A;
-        }
-        .ldate .week .we1{
-          font-size: 1.5em;
-        }
-        .ldate .week .we2{
-          font-size: 0.8em;
-          padding:5px 0 10px;
-          color:#A2A2A2;
-        }
+                .ldate {
+                    display: flex;
+                    flex-direction: column;
+                    padding: 5px;
+                    font-family: Arial, sans-serif;
+                }
+                .ldate-top {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 5px;
+                }
+                .day {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+                .today-text {
+                    font-size: 2em;
+                }
+                .currdate-text {
+                    font-size: 1.1em;
+                    margin-top: 2px;
+                }
+                .lunar-date-numeric {
+                    font-size: 2em;
+                    width: 100%;
+                    text-align: center;
+                }
+                .can-chi-header, .can-chi-values {
+                    display: flex;
+                    justify-content: space-between;
+                    width: 100%;
+                }
+                .can-chi-col {
+                    flex: 1;
+                    text-align: center;
+                    padding: 2px;
+                    font-size: 1.1em;
+                }
+                .can-chi-header .can-chi-col {
+                    font-size: 0.9em;
+                    color: #888;
+                }
+                .can-chi-values .can-chi-col {
+                    border-radius: 4px;
+                    margin: 0 2px;
+                }
+                @media (prefers-color-scheme: light) {
+                    .can-chi-values .can-chi-col {
+                        background: #f0f0f0;
+                    }
+                }
+                @media (prefers-color-scheme: dark) {
+                    .can-chi-values .can-chi-col {
+                        background: var(--card-background-color);
+                        opacity: 0.8;
+                    }
+                }
+                .gio-hoang-dao {
+                    text-align: center;
+                    font-size: 1em;
+                    margin: 5px 0;
+                    font-weight: bold;
+                    color: #FF0000;
+                }
+                .week {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 2px;
+                    margin-bottom: 5px;
+                    width: 100%;
+                }
+                .we {
+                    flex: 1;
+                    text-align: center;
+                    padding: 2px;
+                }
+                .we0 {
+                    font-size: 1em;
+                    color: #888;
+                }
+                .we1 {
+                    font-size: 1.5em;
+                }
+                .we2 {
+                    font-size: 1.2em;
+                    color: #888;
+                }
+                .we.red .we0 {
+                    color: #f05a5a;
+                }
+                .we.act {
+                    background: #639FED;
+                    color: #fff;
+                    border-radius: 4px;
+                }
+                .we.act .we0,
+                .we.act .we1,
+                .we.act .we2 {
+                    color: #fff;
+                }
+                .highlight-hoangdao {
+                    font-weight: bold;
+                }
+            </style>
+        `;
+    }
 
-        .ldate .week .we:nth-child(${act}){
-          background-color: #639FED;
-          color:#fff;
-        }
-        .ldate .week .we:nth-child(${act}),
-        .ldate .week .we:nth-child(${act}).red .we0,
-        .ldate .week .we:nth-child(${act}) .we0,
-        .ldate .week .we:nth-child(${act}) .we2{
-          color:#fff;
-        }
-      </style>
-    `;
-  }
+    setConfig(config) {
+        this.config = config;
+    }
 
-  setConfig(config) {
-    //if (!config.entity) {
-    //throw new Error('You need to define an entity');
-    //}
-    this.config = config;
-  }
-
-  // The height of your card. Home Assistant uses this to automatically
-  // distribute all cards over the available columns.
-  getCardSize() {
-    return 3;
-  }
+    getCardSize() {
+        return 3;
+    }
 }
 
-customElements.define('lunar-calendar', LunarCalendar);
-
+customElements.define("lunar-calendar", LunarCalendar);
