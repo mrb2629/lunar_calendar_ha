@@ -37,9 +37,8 @@ Sensor sẽ được tạo: `sensor.ngay_am_lich` với các thuộc tính là n
 
 Sau đó, thêm card vào Dashboard bằng **YAML Card**:
 
-type: custom:lunar-calendar
-
-# Không cần entity vì card tự tính toán
+- type: custom:lunar-calendar
+  entity: sensor.ngay_am_lich 
 
 Automation
 ```yaml
@@ -84,5 +83,6 @@ Automation
             - service: switch.turn_off
               target:
                 entity_id: switch.chuangmi_plug_m1_3
+
 
 
