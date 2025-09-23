@@ -85,17 +85,3 @@ Automation
             - service: switch.turn_off
               target:
                 entity_id: switch.chuangmi_plug_m1_3
-
-
-
-
-
-
-
-
-
-
-
-
-
-
