@@ -40,7 +40,8 @@ Sau đó, thêm card vào Dashboard bằng **YAML Card**:
 >- type: custom:lunar-calendar  
 >  entity: sensor.ngay_am_lich  
 
-<img width="501" height="276" alt="lich 1" src="https://github.com/user-attachments/assets/64e0d0e3-42be-4350-882e-10f451131bee" />
+<img width="501" height="303" alt="lich2" src="https://github.com/user-attachments/assets/59351a05-6d41-4e0f-bb4c-120d9584a76c" />
+
   
 Automation
 ```yaml
@@ -85,3 +86,4 @@ Automation
             - service: switch.turn_off
               target:
                 entity_id: switch.chuangmi_plug_m1_3
+
